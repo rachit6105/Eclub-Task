@@ -4,3 +4,5 @@ Also the attatched python code works on tinkercad well but i don't think it work
 ## Working
 On pressing A button the dino jumps up and on hitting the obstacle the screen goes white signifying that you lost./
 I basically coded that whenever bits of dino == bits of obstacle consider that as out.
+Here's a link to Tinker CAD anyway/
+https://www.tinkercad.com/things/019PqwYOlil-dinosaur-game
