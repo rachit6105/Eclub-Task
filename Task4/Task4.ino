@@ -1,5 +1,5 @@
 /*SO in my program i take input from a keypad and display the numbers on lcd
-for encryption i devised a plan to convert number to binary then to xor with a given key that is 65537
+for encryption i devised a plan to convert number to binary then to reverse the order of bits and then xor with a given key that is 65537
 I store the key in non volatile memory of arduino using eeprom library
 These are pins for keypad 
 rowPins[ROWS] = {5, 4, 3, 2}; 
@@ -30,56 +30,57 @@ byte rowPins[ROWS] = {5, 4, 3, 2}; //connect to the row pinouts of the keypad 8,
 byte colPins[COLS] = {9, 8, 7, 6}; //connect to the column pinouts of the keypad 4,3,2,1
 Keypad k = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
+//This is the key that i xor my passcode with
 
+const unsigned int KEY = 65537;
 
-const unsigned int KEY = 65537; // The key for XOR operation
-
-// Function to reverse the bits of a 16-bit unsigned integer
-unsigned int reverseBits(unsigned int num) {
+// The first step in encoding
+unsigned int reverse(unsigned int num) {
   unsigned int reversedNum = 0;
   for (int i = 0; i < 16; ++i) {
     if (num & (1 << i)) {
-      reversedNum |= 1 << ((16 - 1) - i);
+      reversedNum |= 1 << (15 - i);
     }
   }
   return reversedNum;
 }
 
 // Function to encrypt a 4-digit number
-unsigned int encryptCode(unsigned int number) {
+unsigned int encrypt(unsigned int number) {
+  //I first checked whether the input number is 4 digit only
   if (number > 9999) {
     Serial.println("Error: Number must be a 4-digit number.");
     return 0;
   }
-  unsigned int reversedNumber = reverseBits(number);
+  unsigned int reversedNumber = reverse(number);
   unsigned int encryptedNumber = reversedNumber ^ KEY;
   return encryptedNumber;
 }
 
-unsigned int decryptCode(unsigned int encryptedNumber) {
+unsigned int decrypt(unsigned int encryptedNumber) {
   unsigned int reversedNumber = encryptedNumber ^ KEY;
-  unsigned int originalNumber = reverseBits(reversedNumber);
+  unsigned int originalNumber = reverse(reversedNumber);
   return originalNumber;
 }
 
 
 // Function to write the encrypted code to EEPROM
 //I am putting data at address 0 
-void writeCodeToEEPROM(unsigned int code) {
-    unsigned int encryptedCode = encryptCode(code);
+void write(unsigned int code) {
+    unsigned int encryptedCode = encrypt(code);
     EEPROM.put(0, encryptedCode);
 }
 
 // Function to read the encrypted code from EEPROM and decrypt it
-unsigned int readCodeFromEEPROM() {
+unsigned int read() {
     unsigned int encryptedCode;
     EEPROM.get(0, encryptedCode);
-    return decryptCode(encryptedCode);
+    return decrypt(encryptedCode);
 }
 
 // Function to verify if the user-entered code matches the stored code
 bool verifyCode(unsigned int userCode) {
-    unsigned int storedCode = readCodeFromEEPROM();
+    unsigned int storedCode = read();
     return userCode == storedCode;
 }
 
@@ -87,17 +88,16 @@ bool verifyCode(unsigned int userCode) {
 void setup() {
   Serial.begin(9600); 
   lcd.begin(16, 2);
-  // Print a message to the LCD.
   lcd.print("Enter Key:");
-  writeCodeToEEPROM(6969);
+  write(6969);
 
 }
 
 
 
 void loop() { // request for input
-  char key_pressed = k.getKey();
   for (int i = 0; i < 4;){
+  char key_pressed = k.getKey();
     if(key_pressed) {
       myNum[i] = key_pressed;
       lcd.setCursor(i,1);
